@@ -1,5 +1,38 @@
 const express = require('express');
 const app = new express();
+const dotenv = require('dotenv');
+
+function getNLUInstance() {
+    let apikey = process.env.API_KEY;
+    let apiurl = process.env.API_URL;
+
+    const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1');
+    const { IamAuthenticator } = require('ibm-watson/auth');
+
+    const naturalLanguageUnderstanding = new NaturalLanguageUnderstandingV1({
+        version: '2021-03-25',
+        authenticator: new IamAuthenticator({
+            apikey: '{apikey}',
+        }),
+        serviceUrl: '{apiurl}',
+    });
+
+    const analyzeParams = {
+        'url': 'www.ibm.com',
+        'features': {
+            'categories': {
+                'limit': 3
+            }
+        }
+    };
+
+    naturalLanguageUnderstanding.analyze(analyzeParams).then(analysisResults => {
+        console.log(JSON.stringify(analysisResults, null, 2));
+    })
+    .catch(err => {
+        console.log('error: ', err);
+    });
+}
 
 app.use(express.static('client'))
 
