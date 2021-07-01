@@ -3,14 +3,16 @@ import './App.css';
 import EmotionTable from './EmotionTable.js';
 import React from 'react';
 import axios from 'axios';
+const title = 'Sentiment Analyzer';
 
 class App extends React.Component {
-  state = {innercomp:<textarea rows="4" cols="50" id="textinput"/>,
-            mode: "text",
-          sentimentOutput:[],
-          sentiment:true
-        }
-  
+  state = {
+    innercomp:<textarea rows="4" cols="50" id="textinput"/>,
+    mode: "text",
+    sentimentOutput:[],
+    sentiment:true
+  }
+
   renderTextArea = ()=>{
     document.getElementById("textinput").value = "";
     if(this.state.mode === "url") {
@@ -45,9 +47,7 @@ class App extends React.Component {
     }
     ret = axios.get(url);
     ret.then((response)=>{
-
       //Include code here to check the sentiment and fomrat the data accordingly
-
       this.setState({sentimentOutput:response.data});
       let output = response.data;
       if(response.data === "positive") {
@@ -71,17 +71,21 @@ class App extends React.Component {
       url = url+"/text/emotion/?text="+document.getElementById("textinput").value;
     }
     ret = axios.get(url);
-
     ret.then((response)=>{
-      this.setState({sentimentOutput:<EmotionTable emotions={response.data}/>});
-  });
+      if (response.data === 'target not foud'){
+        let output = <div style={{color:"red",fontSize:20}}>'Target not found'</div>
+        this.setState({sentimentOutput:output});
+      }else{
+        this.setState({sentimentOutput:<EmotionTable emotions={response.data}/>});
+      }
+    });
   }
-  
 
   render() {
-    return (  
+    return (
       <div className="App">
-      <button className="btn btn-info" onClick={this.renderTextArea}>Text</button>
+        <title>{title}</title>
+        <button className="btn btn-info" onClick={this.renderTextArea}>Text</button>
         <button className="btn btn-dark"  onClick={this.renderTextBox}>URL</button>
         <br/><br/>
         {this.state.innercomp}
@@ -89,10 +93,10 @@ class App extends React.Component {
         <button className="btn-primary" onClick={this.sendForSentimentAnalysis}>Analyze Sentiment</button>
         <button className="btn-primary" onClick={this.sendForEmotionAnalysis}>Analyze Emotion</button>
         <br/>
-            {this.state.sentimentOutput}
+        {this.state.sentimentOutput}
       </div>
     );
-    }
+  }
 }
 
 export default App;

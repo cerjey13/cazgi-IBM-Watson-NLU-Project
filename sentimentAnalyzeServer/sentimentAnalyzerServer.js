@@ -1,40 +1,68 @@
 const express = require('express');
 const app = new express();
 const dotenv = require('dotenv');
+dotenv.config();
 
 function getNLUInstance() {
     let apikey = process.env.API_KEY;
     let apiurl = process.env.API_URL;
-
     const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1');
     const { IamAuthenticator } = require('ibm-watson/auth');
 
     const naturalLanguageUnderstanding = new NaturalLanguageUnderstandingV1({
         version: '2021-03-25',
         authenticator: new IamAuthenticator({
-            apikey: '{apikey}',
+            apikey: apikey,
         }),
-        serviceUrl: '{apiurl}',
+        serviceUrl: apiurl,
     });
 
+    return naturalLanguageUnderstanding;
+}
+
+function sentiment(text, type){
     const analyzeParams = {
-        'url': 'www.ibm.com',
         'features': {
-            'categories': {
-                'limit': 3
+          'sentiment': {
+            'document' : true
+          }
+        }
+    };
+    if( type == 1){
+        analyzeParams.url = text;
+    }else{
+        analyzeParams.text = text;
+    }
+    return analyzeParams;
+}
+
+function emotion(text, type){
+    const analyzeParams = {
+        'features': {
+            'emotion': {
+                'targets': [
+                    "sadness",
+                    "fear",
+                    "joy",
+                    "anger",
+                    "disgust"
+                ],
+                'document' : true
+            },
+            'keywords': {
+              'emotion': true
             }
         }
     };
-
-    naturalLanguageUnderstanding.analyze(analyzeParams).then(analysisResults => {
-        console.log(JSON.stringify(analysisResults, null, 2));
-    })
-    .catch(err => {
-        console.log('error: ', err);
-    });
+    if( type == 1){
+        analyzeParams.url = text;
+    }else{
+        analyzeParams.text = text;
+    }
+    return analyzeParams;    
 }
 
-app.use(express.static('client'))
+app.use(express.static('client'));
 
 const cors_app = require('cors');
 app.use(cors_app());
@@ -44,23 +72,53 @@ app.get("/",(req,res)=>{
   });
 
 app.get("/url/emotion", (req,res) => {
-
-    return res.send({"happy":"90","sad":"10"});
+    console.log('text emotion for url ' + JSON.stringify(req.query.url));
+    getNLUInstance().analyze(emotion(req.query.url, 1)).then(analysisResults => {
+        console.log(JSON.stringify(analysisResults, null, 2).replace("\"",''));
+        return res.send(JSON.stringify(analysisResults.result.keywords["0"].emotion));
+    })
+    .catch(err => {
+        console.log('error:', err);
+        return res.send('target not found');
+    });
 });
 
 app.get("/url/sentiment", (req,res) => {
-    return res.send("url sentiment for "+req.query.url);
+    console.log('text sentiment for url ' + req.query.url);    
+    getNLUInstance().analyze(sentiment(req.query.url, 1)).then(analysisResults => {
+        console.log(JSON.stringify(analysisResults, null, 2).replace("\"",''));
+        return res.send(JSON.stringify(analysisResults.result.sentiment.document.label).replace("\"",'').replace("\"",''));
+    })
+    .catch(err => {
+        console.log('error:', err);
+        return res.send('target not found');
+    });
 });
 
 app.get("/text/emotion", (req,res) => {
-    return res.send({"happy":"10","sad":"90"});
+    console.log('text emotion for ' + req.query.text);
+    getNLUInstance().analyze(emotion(req.query.text, 0)).then(analysisResults => {
+        console.log(JSON.stringify(analysisResults, null, 2).replace("\"",''));
+        return res.send(JSON.stringify(analysisResults.result.keywords["0"].emotion));
+    })
+    .catch(err => {
+        console.log('error:', err);
+        return res.send('target not found');
+    });
 });
 
 app.get("/text/sentiment", (req,res) => {
-    return res.send("text sentiment for "+req.query.text);
+    console.log('text sentiment for ' + req.query.text);    
+    getNLUInstance().analyze(sentiment(req.query.text, 0)).then(analysisResults => {
+        console.log(JSON.stringify(analysisResults, null, 2).replace("\"",''));
+        return res.send(JSON.stringify(analysisResults.result.sentiment.document.label).replace("\"",'').replace("\"",''));
+    })
+    .catch(err => {
+        console.log('error:', err);
+        return res.send('target not found');
+    });
 });
 
 let server = app.listen(8080, () => {
     console.log('Listening', server.address().port)
 })
-
